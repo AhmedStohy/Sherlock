@@ -5,7 +5,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set(MASTER_PROJECT ON)
 endif ()
 
-project(cuda LANGUAGES CXX C)
+project(Sherlock LANGUAGES CXX C)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
@@ -23,7 +23,7 @@ if(NOT CMAKE_BUILD_TYPE)
 			"Default build type: Debug" FORCE)
 endif()
 
-option(CUDA_BUILD_TESTS "Build cuda unit tests" ${MASTER_PROJECT})
+option(SHERLOCK_BUILD_TESTS "Build Sherlock unit tests" ${MASTER_PROJECT})
 
 # external dependencies
 include(CPM)
