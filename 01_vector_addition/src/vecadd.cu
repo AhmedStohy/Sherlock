@@ -1,3 +1,6 @@
+// This program computes the sum of two vectors of length N
+// By: Nick from CoffeeBeforeArch
+
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -9,11 +12,10 @@ __global__ void
 vectorAdd(const int *__restrict a, const int *__restrict b, int *__restrict c, int N)
 {
 	// Calculate global thread ID
-	int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
-
+	int thread_id = (blockIdx.x * blockDim.x) + threadIdx.x;
 	// Boundary check
-	if (tid < N)
-		c[tid] = a[tid] + b[tid];
+	if (thread_id < N)
+		c[thread_id] = a[thread_id] + b[thread_id];
 }
 
 // Check vector add result
@@ -25,31 +27,30 @@ verify_result(const int *a, const int *b, const int *c, int N)
 }
 
 int
-main()
+main(int argc, char const *argv[])
 {
 	// Array size of 2^16 (65536 elements)
 	constexpr int N = 1 << 16;
 	constexpr size_t bytes = sizeof(int) * N;
 
 	// Vectors for holding the host-side (CPU-side) data
-	int a[N], b[N], c[N];
-
+	int a_h[N], b_h[N], c_h[N];
 	// Initialize random numbers in each array
 	for (int i = 0; i < N; i++)
 	{
-		a[i] = rand() % 100;
-		b[i] = rand() % 100;
+		a_h[i] = rand() % 100;
+		b_h[i] = rand() % 100;
 	}
 
 	// Allocate memory on the device
-	int *d_a, *d_b, *d_c;
-	cudaMallocManaged(&d_a, bytes);
-	cudaMallocManaged(&d_b, bytes);
-	cudaMallocManaged(&d_c, bytes);
+	int *a_d, *b_d, *c_d;
+	cudaMalloc((void **)&a_d, bytes);
+	cudaMalloc((void **)&b_d, bytes);
+	cudaMalloc((void **)&c_d, bytes);
 
 	// Copy data from the host to the device (CPU -> GPU)
-	cudaMemcpy(d_a, a, bytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_b, b, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(a_d, a_h, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(b_d, b_h, bytes, cudaMemcpyHostToDevice);
 
 	// Threads per CTA (1024)
 	int NUM_THREADS = 1 << 10;
@@ -63,26 +64,25 @@ main()
 	// Launch the kernel on the GPU
 	// Kernel calls are asynchronous (the CPU program continues execution after
 	// call, but no necessarily before the kernel finishes)
-	vectorAdd<<<NUM_BLOCKS, NUM_THREADS>>>(d_a, d_b, d_c, N);
-	std::cout << "COMPLETED  ADDING SUCCESSFULLY\n";
-	cudaDeviceSynchronize();
+	vectorAdd<<<NUM_BLOCKS, NUM_THREADS>>>(a_d, b_d, c_d, N);
+	std::cout << "COMPLETED  ADDING SUCCESSFULLY !" << std::endl;
 
 	// Copy sum vector from device to host
 	// cudaMemcpy is a synchronous operation, and waits for the prior kernel
 	// launch to complete (both go to the default stream in this case).
 	// Therefore, this cudaMemcpy acts as both a memcpy and synchronization
 	// barrier.
-	cudaMemcpy(c, d_c, bytes, cudaMemcpyDeviceToHost);
+	cudaMemcpy(c_h, c_d, bytes, cudaMemcpyDeviceToHost);
 
 	// Check result for errors
-	verify_result(a, b, c, N);
+	verify_result(a_h, b_h, c_h, N);
 
 	// Free memory on device
-	cudaFree(d_a);
-	cudaFree(d_b);
-	cudaFree(d_c);
+	cudaFree(a_d);
+	cudaFree(b_d);
+	cudaFree(c_d);
 
-	std::cout << "COMPLETED SUCCESSFULLY\n";
+	std::cout << "CODE COMPLETED SUCCESSFULLY !" << std::endl;
 
 	return 0;
 }
